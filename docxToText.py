@@ -1,12 +1,14 @@
 import os
+import json
 import docx
 
 ### class ####
 
 #class to hold all recipe contents
 class Recipe:
-    def __init__(self, title='', ingredients=None, instructions=None):
+    def __init__(self, title='', path='', ingredients=None, instructions=None):
         self.title = title
+        self.path = path
         self.ingredients = ingredients or []
         self.instructions = instructions or []
     #override str function
@@ -18,6 +20,14 @@ class Recipe:
         for i in self.instructions:
             str += "\n" + i
         return str
+    #dictionary function for conversion into .json
+    def to_dict(self):
+        return{
+            "title": self.title,
+            "ingredients": self.ingredients,
+            "instructions": self.instructions, 
+            "file_path": self.path
+        }
             
 
 ### functions ####
@@ -33,7 +43,10 @@ def list_files_recursive(path='.'):
             file_paths.append(os.path.join(dirpath, file))
     return file_paths
 
-def extract_word(lines, recipe):
+def extract_word(lines, recipe, file):
+    #set the recipe file path 
+    recipe.path = file
+
     #iterator
     i = 0
     #these 2 boolean variables will be used to figure out when the 
@@ -71,6 +84,15 @@ def extract_word(lines, recipe):
 
         i += 1
 
+def create_recipes_json(recipes):
+    #convert each recipe into a dictionary by using the class function
+    recipe_dicts = [recipe.to_dict() for recipe in recipes]
+
+    #open/write to json file
+    with open("recipes.json", "w", encoding="utf-8") as f:
+        json.dump(recipe_dicts, f, indent=4)
+
+
 ### main ###
 if __name__ == "__main__":
     #recipeDir = input("Please enter the name of the new recipe directory: ")
@@ -78,19 +100,20 @@ if __name__ == "__main__":
 
     #create list of recipe objects
     recipes = []
+    #extract all .docx files in dir into recipe objects
     for file in recipeDir:
         #create single object instance
         recipe = Recipe()
-        if file.find("Guac") > 0:
-            word_doc = file
-            #get contents of file with import docx
-            contents = docx.Document(word_doc)
-            #get all lines (paragraphs)
-            lines = contents.paragraphs
-            #extract the word document into recipe object
-            extract_word(lines, recipe)
-            print(recipe)
-            #add the recipe to the list of recipes
-            recipes.append(recipe)
+        #get contents of file with import docx
+        contents = docx.Document(file)
+        #get all lines (paragraphs)
+        lines = contents.paragraphs
+        #extract the word document into recipe object
+        extract_word(lines, recipe, file)
+        #add the recipe to the list of recipes
+        recipes.append(recipe)
+    
+    #now that we have a list of recipe objects, we can turn into .json file
+    create_recipes_json(recipes)
 
             
